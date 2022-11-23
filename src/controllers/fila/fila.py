@@ -69,9 +69,15 @@ async def get_fila_id(_id: str, response: Response):
 
 @fila_router.post("/fila")
 async def post_fila(request: Post_fila):
+    next_position = 1
+    fila_max = max(database.fila, key=lambda x: x.posicao, default=None)
+    print(fila_max)
+    if fila_max != None:
+        next_position = fila_max.posicao + 1
+
     _fila = Fila(
         id=str(uuid.uuid4()),
-        posicao=len(database.fila) + 1,
+        posicao=next_position,
         nome_cliente=request.nome_cliente,
         atendimento=request.atendimento,
     )
