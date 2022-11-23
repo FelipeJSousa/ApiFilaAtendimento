@@ -2,7 +2,7 @@ from typing import List
 import uuid
 from fastapi import APIRouter, Response, status
 from datetime import datetime
-from src.schemas.fila import Fila
+from src.schemas.fila import Atendimento, Fila
 from src.schemas.request.fila import Post_fila
 from src.schemas.response.fila import Get_fila
 
@@ -15,11 +15,13 @@ class database:
 
 def obter_fila_nao_atendidos():
     _fila = [x for x in database.fila if x.atendido == False]
+    _fila.sort(key=lambda x: x.posicao)
     return _fila
 
 
 def obter_fila_atendidos():
     _fila = [x for x in database.fila if x.atendido == True]
+    _fila.sort(key=lambda x: x.posicao)
     return _fila
 
 
@@ -35,6 +37,31 @@ def atualizar_fila(startIndex: int = 0):
 
         if cliente.posicao != 0:
             cliente.posicao -= 1
+
+
+def inserir_fila(fila: Post_fila):
+    next_position = 1
+    if fila.atendimento == Atendimento.Normal:
+        fila_max = max(database.fila, key=lambda x: x.posicao, default=None)
+        if fila_max != None:
+            next_position = fila_max.posicao + 1
+
+    if fila.atendimento == Atendimento.Prioritario:
+        fila_max = max([x for x in obter_fila_nao_atendidos() if x.atendimento == Atendimento.Prioritario], key=lambda x: x.posicao, default=None) 
+        fila_index = database.fila.index(fila_max) if fila_max != None else 0
+        next_position = 1 if fila_max == None else fila_max.posicao + 1
+        for cliente in database.fila[fila_index : len(database.fila)]:
+            if cliente.posicao != 0:
+                cliente.posicao += 1
+            
+    _fila = Fila(
+        id=str(uuid.uuid4()),
+        posicao=next_position,
+        nome_cliente=fila.nome_cliente,
+        atendimento=fila.atendimento,
+    )
+    database.fila.append(_fila)
+    return _fila
 
 
 def obter_fila_por_id(id: str):
@@ -69,19 +96,7 @@ async def get_fila_id(_id: str, response: Response):
 
 @fila_router.post("/fila")
 async def post_fila(request: Post_fila):
-    next_position = 1
-    fila_max = max(database.fila, key=lambda x: x.posicao, default=None)
-    print(fila_max)
-    if fila_max != None:
-        next_position = fila_max.posicao + 1
-
-    _fila = Fila(
-        id=str(uuid.uuid4()),
-        posicao=next_position,
-        nome_cliente=request.nome_cliente,
-        atendimento=request.atendimento,
-    )
-    database.fila.append(_fila)
+    _fila = inserir_fila(request)
     return {"fila": _fila}
 
 
