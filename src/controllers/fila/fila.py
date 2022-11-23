@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter
+from fastapi import APIRouter, Response, status
 
 from src.schemas.fila import Fila
 from src.schemas.request.fila import Post_fila
@@ -22,11 +22,16 @@ async def get_fila():
 
 
 @fila_router.get("/fila/{_id}")
-async def obter_fila_id(_id: int):
-    ...
-async def get_fila_id(_id: str):
-    _fila = [x for x in obter_fila_nao_atendidos() if x.id == _id]
-    return {"fila": _fila}
+async def get_fila_id(_id: str, response: Response):
+    _fila = next(filter(id == _id, obter_fila_nao_atendidos()),None)
+    if(_fila != None):
+    _fila = next(filter(lambda x: x.id == _id, obter_fila_nao_atendidos()), None)
+    _fila = next(filter(lambda x: x.id == _id, db_fila), None)
+    print(_fila)
+    if _fila != None:
+        return {"fila": _fila}
+    response.status_code = status.HTTP_404_NOT_FOUND
+    return {"Mensagem": "Não foi encontrado a fila solicitada."}
 
 
 @fila_router.post("/fila")
