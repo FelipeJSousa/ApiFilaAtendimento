@@ -2,6 +2,7 @@ from typing import Optional
 from pydantic import BaseModel, constr
 from datetime import datetime
 from enum import Enum
+import uuid
 
 
 class Atendimento(Enum):
@@ -10,15 +11,11 @@ class Atendimento(Enum):
 
 
 class Fila(BaseModel):
-    id: Optional[int] = 0
+    id: str
     posicao: Optional[int] = None
-    nome_cliente: Optional[constr(max_length=10)]
+    nome_cliente: Optional[constr(max_length=20)]
     data_chegada: Optional[datetime] = datetime.now()
     data_entrada: Optional[datetime] = False
     atendimento: Optional[Atendimento] = Atendimento.Normal
     atendido: Optional[bool] = False
 
-
-class CriarFila(BaseModel):
-    nome_cliente: Optional[constr(max_length=10)]
-    atendimento: Optional[Atendimento] = Atendimento.Normal
