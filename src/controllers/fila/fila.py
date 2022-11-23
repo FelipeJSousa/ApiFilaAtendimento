@@ -23,14 +23,23 @@ def obter_fila_atendidos():
     return _fila
 
 
-def atualizar_fila():
-    for cliente in database.fila:
+def atualizar_fila(startIndex: int = 0):
+    for cliente in (
+        database.fila[startIndex : len(database.fila)]
+        if startIndex > 0
+        else database.fila
+    ):
         if cliente.posicao == 1:
             cliente.atendido = True
             cliente.data_entrada = datetime.now()
 
         if cliente.posicao != 0:
             cliente.posicao -= 1
+
+
+def obter_fila_por_id(id: str):
+    _fila = next(filter(lambda x: x.id == id, database.fila), None)
+    return _fila
 
 
 @fila_router.get("/fila/atendidos")
@@ -51,8 +60,7 @@ async def get_fila():
 
 @fila_router.get("/fila/{_id}")
 async def get_fila_id(_id: str, response: Response):
-    _fila = next(filter(lambda x: x.id == _id, database.fila), None)
-    print(_fila)
+    _fila = obter_fila_por_id(_id)
     if _fila != None:
         return {"fila": _fila}
     response.status_code = status.HTTP_404_NOT_FOUND
@@ -78,5 +86,19 @@ async def put_fila():
 
 
 @fila_router.delete("/fila/{_id}")
-async def delete_fila(_id: str):
-    ...
+async def delete_fila(_id: str, response: Response):
+    _fila = obter_fila_por_id(_id)
+
+    if _fila == None:
+        response.status_code = status.HTTP_404_NOT_FOUND
+        return {"Mensagem": "Não foi encontrado a fila solicitada."}
+
+    fila_index = database.fila.index(_fila)
+    database.fila.remove(_fila)
+    atualizar_fila(fila_index)
+
+    if obter_fila_por_id(_id) == None:
+        return {"Mensagem": "Removido com sucesso"}
+
+    response.status_code = status.HTTP_400_BAD_REQUEST
+    return {"Mensagem": "Não foi possível remover."}
