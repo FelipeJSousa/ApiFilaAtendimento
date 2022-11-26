@@ -27,9 +27,9 @@ def obter_fila_atendidos():
 
 def atualizar_fila(startIndex: int = 0):
     for cliente in (
-        database.fila[startIndex : len(database.fila)]
+        obter_fila_nao_atendidos()[startIndex : len(database.fila)]
         if startIndex > 0
-        else database.fila
+        else obter_fila_nao_atendidos()
     ):
         if cliente.posicao == 1:
             cliente.atendido = True
@@ -47,13 +47,22 @@ def inserir_fila(fila: Post_fila):
             next_position = fila_max.posicao + 1
 
     if fila.atendimento == Atendimento.Prioritario:
-        fila_max = max([x for x in obter_fila_nao_atendidos() if x.atendimento == Atendimento.Prioritario], key=lambda x: x.posicao, default=None) 
-        fila_index = database.fila.index(fila_max) if fila_max != None else 0
+        fila_max = max(
+            [
+                x
+                for x in obter_fila_nao_atendidos()
+                if x.atendimento == Atendimento.Prioritario
+            ],
+            key=lambda x: x.posicao,
+            default=None,
+        )
         next_position = 1 if fila_max == None else fila_max.posicao + 1
-        for cliente in database.fila[fila_index : len(database.fila)]:
+        for cliente in obter_fila_nao_atendidos()[
+            next_position - 1 : len(database.fila)
+        ]:
             if cliente.posicao != 0:
                 cliente.posicao += 1
-            
+
     _fila = Fila(
         id=str(uuid.uuid4()),
         posicao=next_position,
@@ -114,9 +123,8 @@ async def delete_fila(_id: str, response: Response):
         response.status_code = status.HTTP_404_NOT_FOUND
         return {"Mensagem": "Não foi encontrado a fila solicitada."}
 
-    fila_index = database.fila.index(_fila)
     database.fila.remove(_fila)
-    atualizar_fila(fila_index)
+    atualizar_fila(_fila.posicao - 1)
 
     if obter_fila_por_id(_id) == None:
         return {"Mensagem": "Removido com sucesso"}
